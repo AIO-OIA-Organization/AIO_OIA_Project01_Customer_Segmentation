@@ -22,7 +22,9 @@ class CSVProcessor(DataProcessorBase, IDataProcessor):
         return df[df['Country'] == country].copy()
 
     def handle_missing_values(self, df: pd.DataFrame, subsets: list[str]) -> pd.DataFrame:
-        df = df.dropna(subset=subsets).copy()
+        # Luôn xoá NaN trong CustomerID vì nó bắt buộc cho RFM
+        required_cols = list(set(subsets + ['CustomerID']))
+        df = df.dropna(subset=required_cols).copy()
         return df
 
     def handle_duplicates(self, df: pd.DataFrame, subsets: list[str]) -> pd.DataFrame:
