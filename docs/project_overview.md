@@ -47,7 +47,7 @@ Phiên bản hiện tại tập trung vào:
 
 - Data Cleaning.
 - RFM Feature Engineering.
-- Transformation bằng `log1p` hoặc `Box-Cox`.
+- Transformation bằng `log1p`.
 - Scaling bằng `StandardScaler`.
 - K-means Clustering.
 - Chọn K bằng Elbow và Silhouette.
@@ -94,6 +94,16 @@ Group by CustomerID
 Customer-level RFM table
 ```
 
+### RFM Scoring
+
+Ngoài giá trị RFM thô, hệ thống còn tính điểm RFM (R_Score, F_Score, M_Score) bằng cách chia mỗi chỉ số thành 5 bin (quantile) và gán điểm 1-5:
+
+- **Recency**: Điểm cao = mua gần đây (Recency thấp)
+- **Frequency**: Điểm cao = mua thường xuyên (Frequency cao)
+- **Monetary**: Điểm cao = chi tiêu nhiều (Monetary cao)
+
+Các RFM Score này được dùng cho business interpretation và cluster profiling, không dùng trực tiếp cho K-means.
+
 ---
 
 ## 6. Vì sao dùng K-means?
@@ -138,19 +148,23 @@ Người dùng upload một file CSV giao dịch có tối thiểu các cột sa
 
 Sau khi chạy pipeline, hệ thống tạo ra các output chính:
 
-### 8.1. Bảng RFM
+### 8.1. Bảng RFM (rfm_table.csv)
 
-| CustomerID | Recency | Frequency | Monetary |
-|---|---:|---:|---:|
-| 17850 | 5 | 20 | 5000 |
-| 13047 | 180 | 1 | 50 |
+Chứa RFM scores cho từng khách hàng:
 
-### 8.2. Bảng phân khúc khách hàng
+| CustomerID | Recency | Frequency | Monetary | R_Score | F_Score | M_Score | RFM_Score |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| 17850 | 5 | 20 | 5000 | 5 | 5 | 5 | 15 |
+| 13047 | 180 | 1 | 50 | 1 | 1 | 1 | 3 |
 
-| CustomerID | Recency | Frequency | Monetary | Cluster | Segment |
-|---|---:|---:|---:|---:|---|
-| 17850 | 5 | 20 | 5000 | 0 | Champions |
-| 13047 | 180 | 1 | 50 | 1 | Lost Customers |
+### 8.2. Bảng phân khúc khách hàng (rfm_segments.csv)
+
+Chứa RFM scores + cluster labels + segment names:
+
+| CustomerID | Recency | Frequency | Monetary | R_Score | F_Score | M_Score | RFM_Score | Cluster | Segment |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---|
+| 17850 | 5 | 20 | 5000 | 5 | 5 | 5 | 15 | 0 | Champions |
+| 13047 | 180 | 1 | 50 | 1 | 1 | 1 | 3 | 1 | Lost Customers |
 
 ### 8.3. Cluster profile
 
