@@ -10,7 +10,7 @@ from src.processors.csv_eda import CsvEDA
 from src.utilities.eda_visualizer import EDAVisualizer
 from src.orchestrators.eda_orchestractor import EDAOrchestrator
 from src.utilities.convert_data_type import ConvertDataType
-from src.rfm_segmentation import RFMSegmentationPipeline
+from orchestrators.rfm_segmentation import RFMSegmentationPipeline
 
 
 class FullCustomerSegmentationPipeline:
