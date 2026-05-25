@@ -46,7 +46,7 @@ Export Results
 
 ---
 
-## 3. Raw Data Input
+## 3. Phase 1 — Raw Data Input
 
 ### 3.1. Mục tiêu
 
@@ -76,14 +76,57 @@ Description
 
 DataFrame raw ban đầu.
 
+### 3.4. Checklist
 
-## 4. Data Cleaning
+- [ ] Load file CSV.
+- [ ] Kiểm tra encoding.
+- [ ] Kiểm tra số dòng, số cột.
+- [ ] Kiểm tra tên cột.
+- [ ] Kiểm tra missing values.
+- [ ] Kiểm tra kiểu dữ liệu.
+- [ ] Kiểm tra có đủ cột bắt buộc không.
+
+---
+
+## 4. Phase 2 — Data Validation
 
 ### 4.1. Mục tiêu
 
+Đảm bảo file upload đúng format trước khi chạy pipeline.
+
+### 4.2. Rule validation
+
+| Điều kiện | Hành động nếu lỗi |
+|---|---|
+| Thiếu `CustomerID` | Báo lỗi và dừng |
+| Thiếu `InvoiceNo` | Báo lỗi và dừng |
+| Thiếu `InvoiceDate` | Báo lỗi và dừng |
+| Thiếu `Quantity` | Báo lỗi và dừng |
+| Thiếu `UnitPrice` | Báo lỗi và dừng |
+| `InvoiceDate` không parse được | Convert lỗi thành NaT và loại bỏ |
+| `Quantity` không phải số | Convert lỗi thành NaN và loại bỏ |
+| `UnitPrice` không phải số | Convert lỗi thành NaN và loại bỏ |
+
+### 4.3. Output
+
+DataFrame đã qua kiểm tra schema.
+
+### 4.4. Checklist
+
+- [ ] Viết hàm `validate_schema(df)`.
+- [ ] Trả về danh sách cột thiếu.
+- [ ] Hiển thị lỗi trên Streamlit nếu thiếu cột.
+- [ ] Dừng app nếu dữ liệu không hợp lệ.
+
+---
+
+## 5. Phase 3 — Data Cleaning
+
+### 5.1. Mục tiêu
+
 Làm sạch transaction data để chuẩn bị tính RFM.
 
-### 4.2. Cleaning rules
+### 5.2. Cleaning rules
 
 | Bước | Mục đích |
 |---|---|
@@ -97,13 +140,13 @@ Làm sạch transaction data để chuẩn bị tính RFM.
 | Tạo `TotalPrice` | Dùng để tính Monetary |
 | Optional: lọc `Country` | Tập trung vào một thị trường |
 
-### 4.3. Công thức
+### 5.3. Công thức
 
 ```text
 TotalPrice = Quantity × UnitPrice
 ```
 
-### 4.4. Output
+### 5.4. Output
 
 File/dataframe:
 
@@ -111,43 +154,74 @@ File/dataframe:
 cleaned_transactions.csv
 ```
 
-## 5. RFM Feature Engineering
+### 5.5. Checklist
 
-### 5.1. Mục tiêu
+- [ ] Parse datetime.
+- [ ] Chuẩn hóa CustomerID.
+- [ ] Loại missing CustomerID.
+- [ ] Loại canceled invoice.
+- [ ] Loại Quantity/UnitPrice không hợp lệ.
+- [ ] Tạo TotalPrice.
+- [ ] Log số dòng trước và sau cleaning.
+- [ ] Lưu clean data.
+
+---
+
+## 6. Phase 4 — RFM Feature Engineering
+
+### 6.1. Mục tiêu
 
 Biến dữ liệu transaction-level thành customer-level.
 
-### 5.2. Input
+### 6.2. Input
 
 Cleaned transaction data.
 
-### 5.3. RFM definition
+### 6.3. RFM definition
 
 | Feature | Công thức | Ý nghĩa |
 |---|---|---|
 | Recency | `snapshot_date - max(InvoiceDate)` | Số ngày từ lần mua cuối |
 | Frequency | `nunique(InvoiceNo)` | Số hóa đơn unique |
 | Monetary | `sum(TotalPrice)` | Tổng chi tiêu |
-| R_Score | Quantile binning (5 tầng) | Điểm Recency từ 1-5, thấp càng tốt |
-| F_Score | Quantile binning (5 tầng) | Điểm Frequency từ 1-5, cao càng tốt |
-| M_Score | Quantile binning (5 tầng) | Điểm Monetary từ 1-5, cao càng tốt |
-| RFM_Score | R_Score + F_Score + M_Score | Tổng điểm RFM (3-15) |
 
-### 5.5. Output
+### 6.4. Snapshot date
+
+```text
+snapshot_date = max(InvoiceDate) + 1 day
+```
+
+### 6.5. Output
 
 ```text
 rfm_table.csv
 ```
 
-Bảng output (8 cột):
+Bảng output:
 
-| CustomerID | Recency | Frequency | Monetary | R_Score | F_Score | M_Score | RFM_Score |
-|---|---:|---:|---:|---:|---:|---:|---:|
+| CustomerID | Recency | Frequency | Monetary |
+|---|---:|---:|---:|
 
+### 6.6. Checklist
 
-## 6. Phase 5 — RFM EDA
+- [ ] Group by `CustomerID`.
+- [ ] Tính Recency.
+- [ ] Tính Frequency.
+- [ ] Tính Monetary.
+- [ ] Kiểm tra RFM không âm.
+- [ ] Kiểm tra Frequency > 0.
+- [ ] Kiểm tra Monetary > 0.
+- [ ] Lưu RFM table.
 
-### 6.1. Mục tiêu
+---
+
+## 7. Phase 5 — RFM EDA
+
+### 7.1. Mục tiêu
+
+Hiểu phân phối của RFM trước khi đưa vào clustering.
+
+### 7.2. Các phân tích cần làm
 
 - Histogram Recency.
 - Histogram Frequency.
@@ -157,7 +231,7 @@ Bảng output (8 cột):
 - Top customers by Monetary.
 - Top customers by Frequency.
 
-### 6.3. Insight cần trả lời
+### 7.3. Insight cần trả lời
 
 - Khách hàng có mua gần đây không?
 - Phần lớn khách mua nhiều hay ít?
@@ -165,12 +239,23 @@ Bảng output (8 cột):
 - RFM có bị skewed không?
 - Có outlier lớn không?
 
+### 7.4. Checklist
+
+- [ ] Vẽ histogram Recency.
+- [ ] Vẽ histogram Frequency.
+- [ ] Vẽ histogram Monetary.
+- [ ] Vẽ boxplot.
+- [ ] Ghi nhận skewness.
+- [ ] Ghi nhận outliers.
+- [ ] Viết insight ngắn.
+
 ---
 
+## 8. Phase 6 — RFM Transformation
 
-## 7. Phase 6 — RFM Transformation
+### 8.1. Mục tiêu
 
-### 7.1. Mục tiêu
+Giảm độ lệch phải của RFM trước khi clustering.
 
 RFM thường bị right-skewed vì:
 
@@ -178,9 +263,9 @@ RFM thường bị right-skewed vì:
 - Một số ít khách mua rất nhiều.
 - Monetary có outlier lớn.
 
-### 7.2. Method — log1p
+### 8.2. Option 1 — log1p
 
-MVP dùng log1p để transformation:
+Cách đơn giản cho MVP:
 
 ```python
 X_log = np.log1p(X)
@@ -191,26 +276,61 @@ X_log = np.log1p(X)
 - Dễ hiểu.
 - Dễ triển khai.
 - Xử lý được giá trị 0.
-- Hiệu quả cho RFM-only.
+- Không cần lưu lambda.
+
+### 8.3. Option 2 — Box-Cox (option cho phần mở rộng sau này của dự án)
+
+Cách chuyên nghiệp hơn:
+
+```python
+transformed, lambda_param = boxcox(x)
+```
+
+Lưu ý:
+
+- Dữ liệu phải > 0.
+- Cần lưu lambda cho từng feature nếu dùng production inference.
+- Phù hợp khi muốn bám sát pipeline nâng cao.
+
+### 8.4. Quyết định MVP
+
+MVP có thể dùng:
+
+```text
+log1p + StandardScaler
+```
+
+Trong phần mở rộng thêm sau này của dự án có thể dùng:
+
+```text
+Box-Cox + StandardScaler
+```
+
+### 8.5. Checklist
+
+- [ ] Chọn log1p hoặc Box-Cox.
+- [ ] Áp dụng transformation cho RFM.
+- [ ] Kiểm tra phân phối sau transform.
+- [ ] Lưu transformer nếu cần production.
 
 ---
 
-## 8. Phase 7 — Feature Scaling
+## 9. Phase 7 — Feature Scaling
 
-### 8.1. Mục tiêu
+### 9.1. Mục tiêu
 
 Đưa Recency, Frequency, Monetary về cùng thang đo.
 
 K-means dùng khoảng cách Euclidean nên rất nhạy với scale.
 
-### 8.2. Method
+### 9.2. Method
 
 ```python
 scaler = StandardScaler()
 X_scaled = scaler.fit_transform(X_transformed)
 ```
 
-### 8.3. Output
+### 9.3. Output
 
 Scaled RFM matrix:
 
@@ -218,78 +338,103 @@ Scaled RFM matrix:
 X_scaled
 ```
 
----
+### 9.4. Checklist
 
-## 9. Phase 8 — Optimal K Selection (MVP: Fixed K=4)
-
-### 9.1. Mục tiêu
-
-Phiên bản MVP hiện tại sử dụng **K=4 cố định** để đơn giản hóa.
-
-Trong tương lai, có thể thêm tính năng tự động chọn K bằng Elbow Method và Silhouette Score.
-
-### 9.2. MVP — Fixed K
-
-```python
-n_clusters = 4  # Cố định cho MVP
-```
-
-Lý do chọn K=4:
-
-- Dễ hiểu cho business.
-- Champions, Loyal, At-Risk, Lost.
-- Cân bằng giữa chi tiết và khả năng hành động.
-
-### 9.3. Future — Automatic K Selection
-
-Trong phiên bản nâng cao, có thể thêm:
-
-```python
-K_range = range(2, 11)
-# Tính Elbow
-# Tính Silhouette
-# Đề xuất K tối ưu
-# Cho user chọn lại nếu cần
-```
+- [ ] Fit StandardScaler trên transformed RFM.
+- [ ] Tạo `X_scaled`.
+- [ ] Kiểm tra shape.
+- [ ] Lưu scaler nếu cần production.
 
 ---
 
-## 10. Phase 9 — K-means Training
+## 10. Phase 8 — Optimal K Selection
 
 ### 10.1. Mục tiêu
 
+Tìm số cụm K phù hợp trước khi train K-means cuối cùng.
+
+### 10.2. Range
+
+Thử K trong khoảng:
+
+```text
+K = 2 → 10
+```
+
+### 10.3. Metrics
+
+| Metric | Ý nghĩa |
+|---|---|
+| Inertia/WCSS | Tổng khoảng cách bình phương từ điểm tới centroid |
+| Elbow Method | Tìm điểm mà inertia giảm chậm lại |
+| Silhouette Score | Đo độ tách biệt và gắn kết của cụm |
+
+### 10.4. Output
+
+```text
+k_results.csv
+```
+
+| k | inertia | silhouette |
+|---:|---:|---:|
+
+### 10.5. Checklist
+
+- [ ] Loop k từ 2 đến 10.
+- [ ] Fit K-means cho từng k.
+- [ ] Tính inertia.
+- [ ] Tính silhouette.
+- [ ] Vẽ Elbow chart.
+- [ ] Vẽ Silhouette chart.
+- [ ] Đề xuất best_k.
+- [ ] Cho user chọn lại K trên Streamlit nếu cần.
+
+---
+
+## 11. Phase 9 — K-means Training
+
+### 11.1. Mục tiêu
+
 Huấn luyện K-means với K đã chọn.
 
-### 10.2. Input
+### 11.2. Input
 
 ```text
 X_scaled
 selected_k
 ```
 
-### 10.3. Training
+### 11.3. Training
 
 ```python
 model = KMeans(n_clusters=selected_k, random_state=42, n_init=10)
 labels = model.fit_predict(X_scaled)
 ```
 
-### 10.4. Output
+### 11.4. Output
 
 RFM table có thêm cluster label:
 
 | CustomerID | Recency | Frequency | Monetary | Cluster |
 |---|---:|---:|---:|---:|
 
+### 11.5. Checklist
+
+- [ ] Fit K-means với selected_k.
+- [ ] Gán cluster label.
+- [ ] Kiểm tra số khách mỗi cluster.
+- [ ] Lưu model nếu cần.
+- [ ] Lưu output segmentation.
+
 ---
 
-## 11. Phase 10 — Cluster Profiling
+## 12. Phase 10 — Cluster Profiling
 
-### 11.1. Mục tiêu
+### 12.1. Mục tiêu
 
 Hiểu mỗi cluster đại diện cho nhóm khách hàng nào.
 
-### 11.2. Các chỉ số cần tính theo cluster
+### 12.2. Các chỉ số cần tính theo cluster
 
 - Số khách hàng.
 - Recency mean/median.
@@ -299,7 +444,7 @@ Hiểu mỗi cluster đại diện cho nhóm khách hàng nào.
 - Revenue share.
 - Customer share.
 
-### 11.3. Output
+### 12.3. Output
 
 ```text
 cluster_profile.csv
@@ -308,11 +453,20 @@ cluster_profile.csv
 | Cluster | Customer Count | Recency Mean | Frequency Mean | Monetary Mean | Revenue Share |
 |---:|---:|---:|---:|---:|---:|
 
+### 12.4. Checklist
+
+- [ ] Group by Cluster.
+- [ ] Tính mean/median RFM.
+- [ ] Tính số khách.
+- [ ] Tính doanh thu theo cluster.
+- [ ] Tính revenue share.
+- [ ] Viết nhận xét từng cluster.
+
 ---
 
-## 12. Phase 11 — Segment Naming
+## 13. Phase 11 — Segment Naming
 
-### 12.1. Mục tiêu
+### 13.1. Mục tiêu
 
 Chuyển cluster label kỹ thuật thành tên segment dễ hiểu cho business.
 
@@ -326,34 +480,41 @@ Vì cluster ID có thể thay đổi sau mỗi lần train.
 
 Phải đọc profile rồi mới đặt tên.
 
-### 12.2. Gợi ý logic đặt tên
+### 13.2. Gợi ý logic đặt tên
 
 | RFM Pattern | Segment Name |
 |---|---|
 | Recency thấp, Frequency cao, Monetary cao | Champions |
 | Recency cao, Frequency cao, Monetary cao | At Risk VIP |
-| Recency thấp, Frequency thấp | New / Recent Customers |
+| Recency thấp, Frequency thấp, Monetary thấp | New / Recent Customers |
 | Recency cao, Frequency thấp, Monetary thấp | Lost Customers |
-| Frequency cao, Monetary trung bình/cao | Loyal Customers |
-| Monetary cao, Frequency thấp | Big Spenders |
+| Recency thấp, Frequency cao, Monetary thấp | Loyal Customers |
+| Recency thấp, Frequency thấp, Monetary cao | Big Spenders |
 | Các nhóm còn lại | Regular Customers |
 
-### 12.3. Output
+### 13.3. Output
 
-RFM table có thêm `Cluster` và `Segment` (10 cột).
+RFM table có thêm `Segment`.
 
-| CustomerID | Recency | Frequency | Monetary | R_Score | F_Score | M_Score | RFM_Score | Cluster | Segment |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|---|
+| CustomerID | Recency | Frequency | Monetary | Cluster | Segment |
+|---|---:|---:|---:|---:|---|
+
+### 13.4. Checklist
+
+- [ ] Xếp hạng cluster theo Recency, Frequency, Monetary.
+- [ ] Tạo mapping `Cluster → Segment`.
+- [ ] Kiểm tra segment name có hợp lý không.
+- [ ] Viết mô tả từng segment.
 
 ---
 
-## 13. Phase 12 — Business Recommendation
+## 14. Phase 12 — Business Recommendation
 
-### 13.1. Mục tiêu
+### 14.1. Mục tiêu
 
 Đưa ra hành động marketing/CRM cho từng segment.
 
-### 13.2. Recommendation mapping
+### 14.2. Recommendation mapping
 
 | Segment | Recommendation |
 |---|---|
@@ -365,91 +526,100 @@ RFM table có thêm `Cluster` và `Segment` (10 cột).
 | Lost Customers | Remarketing chi phí thấp |
 | Regular Customers | Duy trì tương tác và gợi ý sản phẩm phù hợp |
 
+### 14.3. Checklist
+
+- [ ] Viết recommendation cho từng segment.
+- [ ] Gắn recommendation vào output.
+- [ ] Hiển thị trên dashboard.
+- [ ] Đưa vào report.
+
 ---
 
-## 14. Phase 13 — Streamlit Dashboard
+## 15. Phase 13 — Streamlit App
 
-### 14.1. Mục tiêu
+### 15.1. Mục tiêu
 
-Hiển thị kết quả segmentation đã được tính toán trước dó bằng `run_full_pipeline.py`.
+Đóng gói pipeline thành app để người dùng không cần đọc code vẫn dùng được.
 
-Streamlit app là dashboard **visualization-only** (không xử lý data trong app).
+### 15.2. Input trên app
 
-### 14.2. Workflow sử dụng
+- Upload CSV.
+- Optional: chọn country.
+- Optional: chọn transform method.
+- Optional: chọn K hoặc dùng K đề xuất.
+- Optional: nhập CustomerID để lookup.
 
-1. User chạy `python src/run_full_pipeline.py` để tạo output files.
-2. User chạy `streamlit run app/streamlit_app.py` để mở dashboard.
-3. App đọc files từ `data/processed/`:
-   - `rfm_table.csv`
-   - `rfm_segments.csv`
-   - `eda_results/` (biểu đồ)
-4. App hiển thị kết quả dưới dạng interactive dashboard.
+### 15.3. Output trên app
 
-### 14.3. Output trên app
-
-- Data overview (số khách, số giao dịch sau cleaning).
-- RFM statistics.
-- Segment distribution (bảng + biểu đồ).
+- Data overview.
+- RFM table.
+- Elbow chart.
+- Silhouette chart.
+- Segment distribution.
 - Revenue by segment.
-- Cluster profile (RFM mean theo segment).
-- Business recommendation.
-- Customer lookup (tra cứu CustomerID).
-- Download outputs.
+- Cluster profile.
+- Customer lookup.
+- Recommendation.
+- Download CSV.
 
-### 14.4. Page layout
+### 15.4. Page layout gợi ý
 
 ```text
 Sidebar
-  ├── Project Title
-  ├── File Info
-  └── Navigation
+  ├── Upload CSV
+  ├── Country filter
+  ├── Transform method
+  ├── K selection
+  └── Run button
 
 Main
   ├── Data Overview
-  ├── RFM Statistics
-  ├── Segment Distribution
-  ├── Revenue by Segment
-  ├── Cluster Profile
+  ├── RFM Table
+  ├── K Selection Charts
+  ├── Segmentation Result
+  ├── Segment Profile
   ├── Business Recommendation
   ├── Customer Lookup
   └── Download Outputs
 ```
 
+### 15.5. Checklist
+
+- [ ] Tạo `app/streamlit_app.py`.
+- [ ] Thêm file uploader.
+- [ ] Gọi pipeline từ source code.
+- [ ] Hiển thị metrics.
+- [ ] Hiển thị charts.
+- [ ] Hiển thị tables.
+- [ ] Thêm customer lookup.
+- [ ] Thêm download button.
+- [ ] Test app với file mẫu.
+
 ---
 
-## 15. Phase 14 — Export Results
+## 16. Phase 14 — Export Results
 
-### 15.1. Output files
-
-Pipeline tạo 4 loại output:
+### 16.1. Output files
 
 ```text
-data/processed/
-  ├── clean_transactions.csv              # Transaction-level sau cleaning
-  ├── rfm_table.csv                       # Customer-level với RFM + scores (8 cols)
-  ├── rfm_segments.csv                    # Customer + cluster + segment (10 cols)
-  └── eda_results/                        # EDA visualization charts
-      ├── revenue_trend_monthly.png       # Doanh thu theo tháng
-      ├── revenue_trend_quarterly.png     # Doanh thu theo quý
-      ├── orders_by_weekday.png          # Số đơn hàng theo ngày tuần
-      ├── orders_by_hour.png             # Heatmap đơn hàng theo giờ
-      ├── top_products_revenue.png        # Top 10 sản phẩm theo doanh thu
-      ├── top_products_quantity.png       # Top 10 sản phẩm theo số lượng
-      └── customer_behavior.png           # Phân phối chi tiêu khách hàng
+outputs/cleaned_transactions.csv
+outputs/rfm_table.csv
+outputs/k_selection_results.csv
+outputs/customer_segments.csv
+outputs/cluster_profile.csv
 ```
 
-### 15.2. File descriptions
+### 16.2. Checklist
 
-| File | Mục đích |
-|---|---|
-| clean_transactions.csv | Input cho RFM calculation |
-| rfm_table.csv | RFM scores + R/F/M_Score (1-5) |
-| rfm_segments.csv | Cluster assignments + segment names |
-| eda_results/ | Biểu đồ EDA từ cleaning phase |
-
+- [ ] Lưu clean data.
+- [ ] Lưu RFM table.
+- [ ] Lưu K results.
+- [ ] Lưu customer segments.
+- [ ] Lưu cluster profile.
+- [ ] Cho download trong Streamlit.
 ---
 
-## 16. Role-based Workflow cho team
+## 17. Role-based Workflow cho team
 
 | Role | Nhiệm vụ |
 |---|---|
@@ -461,6 +631,68 @@ data/processed/
 
 ---
 
-## 17. Final Workflow Sentence
+## 18. MVP Acceptance Criteria
+
+Dự án MVP được xem là hoàn thành khi:
+
+- [ ] User upload được file CSV.
+- [ ] App kiểm tra được schema.
+- [ ] App clean được dữ liệu.
+- [ ] App tính được RFM.
+- [ ] App transform và scale được RFM.
+- [ ] App vẽ được Elbow và Silhouette.
+- [ ] App train được K-means.
+- [ ] App gán được cluster cho từng customer.
+- [ ] App tạo được cluster profile.
+- [ ] App đặt được segment name.
+- [ ] App hiển thị recommendation.
+- [ ] App cho download output CSV.
+- [ ] README hướng dẫn chạy app rõ ràng.
+- [ ] Report giải thích được business insight.
+
+---
+
+## 19. Notes về SHAP/xAI
+
+SHAP chưa nên là core requirement trong MVP vì chỉ có 3 feature RFM. Việc giải thích cluster bằng profile RFM là đủ rõ.
+
+SHAP có thể được thêm ở module nâng cao khi:
+
+- Bổ sung 16 behavioral features.
+- Cụm khó giải thích bằng centroid.
+- Cần giải thích feature nào ảnh hưởng nhiều đến việc một khách thuộc cụm nào.
+
+Nếu dùng SHAP, cần nhớ:
+
+```text
+SHAP không giải thích trực tiếp K-means.
+SHAP giải thích surrogate model được train để bắt chước cluster label.
+```
+
+---
+
+## 20. Workflow tóm tắt cho demo
+
+```text
+1. Mở Streamlit app.
+2. Upload raw transaction CSV.
+3. App hiển thị số dòng raw.
+4. App chạy cleaning.
+5. App hiển thị số dòng sau cleaning.
+6. App tính RFM.
+7. App vẽ phân phối RFM.
+8. App chạy Elbow và Silhouette.
+9. User chọn K.
+10. App train K-means.
+11. App hiển thị segment distribution.
+12. App hiển thị cluster profile.
+13. App hiển thị recommendation.
+14. User tra cứu CustomerID.
+15. User download customer_segments.csv.
+```
+
+---
+
+## 21. Final Workflow Sentence
 
 Project workflow được thiết kế để biến một file giao dịch thô thành một hệ thống phân khúc khách hàng có thể sử dụng được. Toàn bộ quy trình đi từ data cleaning, RFM feature engineering, transformation, scaling, K-means clustering, cluster interpretation đến dashboard Streamlit. Kết quả cuối cùng không chỉ là cluster label, mà là insight và recommendation có giá trị cho marketing/business team.
