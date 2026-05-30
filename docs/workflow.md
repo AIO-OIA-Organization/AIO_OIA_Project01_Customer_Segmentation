@@ -278,7 +278,7 @@ X_log = np.log1p(X)
 - Xử lý được giá trị 0.
 - Không cần lưu lambda.
 
-### 8.3. Option 2 — Box-Cox
+### 8.3. Option 2 — Box-Cox (option cho phần mở rộng sau này của dự án)
 
 Cách chuyên nghiệp hơn:
 
@@ -300,7 +300,7 @@ MVP có thể dùng:
 log1p + StandardScaler
 ```
 
-Nếu muốn giống pipeline của thầy hơn, có thể dùng:
+Trong phần mở rộng thêm sau này của dự án có thể dùng:
 
 ```text
 Box-Cox + StandardScaler
@@ -486,10 +486,10 @@ Phải đọc profile rồi mới đặt tên.
 |---|---|
 | Recency thấp, Frequency cao, Monetary cao | Champions |
 | Recency cao, Frequency cao, Monetary cao | At Risk VIP |
-| Recency thấp, Frequency thấp | New / Recent Customers |
+| Recency thấp, Frequency thấp, Monetary thấp | New / Recent Customers |
 | Recency cao, Frequency thấp, Monetary thấp | Lost Customers |
-| Frequency cao, Monetary trung bình/cao | Loyal Customers |
-| Monetary cao, Frequency thấp | Big Spenders |
+| Recency thấp, Frequency cao, Monetary thấp | Loyal Customers |
+| Recency thấp, Frequency thấp, Monetary cao | Big Spenders |
 | Các nhóm còn lại | Regular Customers |
 
 ### 13.3. Output

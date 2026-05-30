@@ -28,7 +28,6 @@ Ví dụ, hệ thống có thể giúp phát hiện:
 
 - Nhóm khách hàng giá trị cao.
 - Nhóm khách hàng trung thành.
-- Nhóm khách hàng mới.
 - Nhóm khách hàng có nguy cơ rời bỏ.
 - Nhóm khách hàng đã lâu không quay lại.
 
@@ -38,60 +37,87 @@ Ví dụ, hệ thống có thể giúp phát hiện:
 - Quy mô: 541,909 giao dịch từ 4,372 khách hàng
 - Đặc điểm: Giao dịch quà tặng và đồ gia dụng độc đáo
 
-## 3. Cấu trúc thư mục
+## 4. Cấu trúc thư mục
 
-```text
-customer-segmentation-rfm/
+```
+AIO_OIA_Project01_Customer_Segmentation/
 │
 ├── data/
-│   ├── raw/                         # Dữ liệu gốc
-│   └── processed/                   # Dữ liệu sau xử lý và kết quả phân cụm
+│   ├── raw/
+│   │   └── online_retail.csv              # Dữ liệu gốc
+│   └── processed/
+│       ├── clean_transactions.csv         # Dữ liệu sau làm sạch
+│       ├── rfm_table.csv                  # RFM scores
+│       ├── rfm_segments.csv               # Kết quả phân cụm cuối cùng
+│       └── eda_results/                   # Kết quả EDA (hình ảnh)
 │
 ├── notebooks/
-│   ├── 01_cleaning_and_eda.ipynb     # Làm sạch dữ liệu và EDA
-│   ├── 02_rfm_feature_engineering.ipynb
-│   └── 03_kmeans_modeling.ipynb      # K-means và diễn giải cụm
+│   ├── 01_cleaning_and_eda_1.ipynb       # Làm sạch và EDA
+│   ├── rfm_feature_engineering.ipynb     # Tạo features RFM
+│   ├── kmeans_modeling.ipynb             # K-means clustering
+│   └── rfm_kmeans_complete.ipynb         # Pipeline hoàn chỉnh
 │
 ├── src/
-│   └── rfm_segmentation.py           # Logic chính: cleaning, RFM, K-means, segment naming
+│   ├── run_full_pipeline.py              # pipeline làm sạch + EDA + RFM + K-means
+│   ├── rfm_segmentation.py               # RFM + K-means pipeline
+│   ├── interfaces/                       # Định nghĩa interface, business logic
+│   │   ├── data_processor_interface.py
+│   │   ├── eda_processor_interface.py
+│   │   ├── rfm_calculator_interface.py
+│   │   └── segmentor_interface.py
+│   ├── models/
+│   │   ├── kmeans_segmentor.py           # Phân cụm K-means
+│   │   └── calculators/
+│   │       └── rfm_calculator.py         # Logic tính RFM
+│   ├── processors/
+│   │   ├── csv_processor.py              # Xử lý dữ liệu CSV
+│   │   ├── csv_eda.py                    # Phân tích EDA
+│   │   ├── data_processor_base.py        # Lớp cơ sở, logic kỹ thuật
+│   │   └── eda_processor_base.py         # Lớp cơ sở, logic kỹ thuật
+│   ├── orchestrators/
+│   │   └── eda_orchestractor.py          # điều phối EDA
+│   └── utilities/
+│       ├── convert_data_type.py          # Chuyển đổi kiểu dữ liệu
+│       └── eda_visualizer.py             # Trực quan hóa
 │
 ├── app/
-│   └── streamlit_app.py              # Giao diện Streamlit
+│   └── streamlit_app.py                  # Giao diện Streamlit
 │
 ├── docs/
-│   ├── project_overview.md           # Tổng quan project
-│   └── workflow.md                   # Quy trình xử lý end-to-end
+│   ├── project_overview.md               # Tổng quan project
+│   ├── workflow.md                       # Chi tiết workflow
+│   └── EDA_flow.md                       # Chi tiết EDA flow
 │
-├── README.md                         # Tài liệu hướng dẫn chính
-├── requirements.txt                  # Thư viện cần cài đặt
-├── .gitignore
-└── setup_code.py                     # Script hỗ trợ setup, nếu cần
+├── README.md                             # Tài liệu này
+├── requirements.txt                      # Thư viện phụ thuộc
+└── LICENSE
 ```
 
-## 4. Giải thích về model và dữ liệu ngành khác nhau
+## 5. Key Insights
 
-Trong phiên bản demo, app sẽ fit lại K-means trên từng file người dùng upload. Điều này có nghĩa là mỗi dataset sẽ có một kết quả segmentation riêng.
+### RFM Metrics
 
-Không nên dùng model đã train từ ngành A để áp dụng trực tiếp cho ngành B nếu hành vi mua hàng khác nhau.
+- **Recency (R)**: Khách càng gần đây mua, Recency càng nhỏ, customer càng active
+- **Frequency (F)**: Khách hàng trung thành có Frequency cao
+- **Monetary (M)**: Chi tiêu cao = customer giá trị cao
 
-Ví dụ:
+### K-Means Segments
 
-| Ngành | Đặc điểm hành vi |
-|---|---|
-| Thực phẩm | Mua thường xuyên, chu kỳ ngắn |
-| Mỹ phẩm | Mua theo chu kỳ vài tuần hoặc vài tháng |
-| Nội thất | Mua ít lần nhưng giá trị đơn hàng cao |
-| Ô tô | Chu kỳ mua rất dài, Frequency thấp là bình thường |
+4 phân khúc mặc định (có thể tune `n_clusters`):
+- **Segment 0**: Có thể là VIP customers (R, F, M đều cao)
+- **Segment 1**: Có thể là At-Risk (R cao = lâu không mua)
+- **Segment 2**: Có thể là Regular customers
+- **Segment 3**: Có thể là New customers (F thấp)
 
-Vì vậy:
+### Ứng dụng Business
 
-- Có thể dùng lại pipeline RFM + K-means.
-- Có thể dùng lại code và giao diện Streamlit.
-- Nhưng nên fit lại scaler, K-means và diễn giải segment cho từng ngành hoặc từng doanh nghiệp cụ thể.
+- **Marketing**: Chiến dịch khác nhau cho mỗi segment
+- **Retention**: Tập trung vào segment At-Risk
+- **Growth**: Upsell/Cross-sell cho VIP customers
+- **Churn Prevention**: Theo dõi khách hàng từ Regular → At-Risk
 
-## 5. Hướng phát triển tiếp theo
 
-Các hướng mở rộng trong tương lai:
+## 6. Hướng phát triển tiếp theo
 
 - Thêm 16 behavioral features để cải thiện segmentation.
 - So sánh RFM-only với advanced feature engineering.
@@ -101,34 +127,5 @@ Các hướng mở rộng trong tương lai:
 - Kết nối database thay vì chỉ upload CSV.
 - Lưu model để phục vụ inference cho khách hàng mới trong cùng doanh nghiệp.
 
-Dưới đây là mã Markdown chính xác cho nội dung trong ảnh. Bạn có thể copy toàn bộ đoạn mã trong khung dưới đây để sử dụng:
-
-
-## Bắt đầu nhanh
-
-1. Cài đặt dependencies:
-
-```bash
-pip install -r requirements.txt
-```
-
-2. Chạy notebooks theo thứ tự:
-    * `01_cleaning_and_eda.ipynb` - Làm sạch và khám phá dữ liệu
-    * `02_feature_engineering.ipynb` - Tạo features RFM
-    * `03_modeling.ipynb` - Xây dựng mô hình clustering
-
 ---
 
-## Công nghệ sử dụng
-
-* **Python**
-* **Pandas** - Xử lý dữ liệu
-* **Scikit-learn** - Machine learning
-* **Matplotlib/Seaborn** - Visualization
-* **NumPy** - Tính toán số học
-
----
-
-## Tài liệu
-
-Chi tiết về phương pháp và lý thuyết được mô tả trong `docs/workflow.md` và `docs/project_overview.md`
